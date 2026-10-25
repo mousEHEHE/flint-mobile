@@ -1,0 +1,76 @@
+[package]
+name = "flint-mobile"
+version = "0.1.0"
+edition = "2021"
+description = "flint for iOS and Android: an SSH terminal on the phone"
+license = "GPL-3.0-only"
+publish = false
+
+# The iOS app links the static library, Android loads the shared one.
+[lib]
+name = "flint_mobile"
+crate-type = ["staticlib", "cdylib", "lib"]
+
+[dependencies]
+flint-core = { path = "../flint-core" }
+
+# Same pinned versions as flint-gpui.
+gpui = { package = "gpui-pre", version = "=0.3.9", default-features = false }
+gpui-component = "=0.7.3"
+gpui-kit-assets = "=0.7.3"
+# Without debug-embed, debug builds read the icons from ~/.cargo at run time; fails on a phone.
+rust-embed = { version = "8", features = ["debug-embed"] }
+# A local clone of longbridge/gpui-mobile with fixes not yet sent upstream (see README.md).
+# Switch to a git dependency on longbridge's repo once they are merged.
+gpui-mobile = { package = "gpui-pre-mobile", path = "../gpui-mobile", default-features = false, features = ["path_provider"] }
+futures = "0.3"
+
+anyhow = "1"
+# With `log`, flint-core's tracing events reach NSLog on iOS and logcat on Android.
+tracing = { version = "0.1", features = ["log"] }
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+zeroize = "1"
+secrecy = "0.8"
+# Counts a GIF's frames before gpui decodes them all.
+gif = "0.14"
+
+[target.'cfg(target_os = "ios")'.dependencies]
+objc2 = "0.6"
+# For the sign-in sheet's completion handler.
+block2 = "0.6"
+# The keychain holds the key that opens the vault.
+security-framework = "3"
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.15"
+android-activity = { version = "0.6", features = ["native-activity"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+# For the desktop preview example.
+[target.'cfg(not(any(target_os = "ios", target_os = "android")))'.dev-dependencies]
+env_logger = "0.11"
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.9", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
+
+[[example]]
+name = "preview"
+
+[lints.clippy]
+too_many_arguments = "allow"
+large_enum_variant = "allow"
+type_complexity = "allow"
+
+# gpui and alacritty are too slow unoptimized, even for debugging, and full debug info
+# for them makes the iOS library over 1 GB.
+[profile.dev.package."*"]
+opt-level = 3
+debug = "line-tables-only"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

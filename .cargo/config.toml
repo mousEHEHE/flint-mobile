@@ -1,0 +1,5 @@
+[env]
+# A dependency may pull in fontconfig for Android. Loading it at run time keeps
+# the build from linking a library the phone does not have. From gpui-mobile's
+# example.
+RUST_FONTCONFIG_DLOPEN = "on"

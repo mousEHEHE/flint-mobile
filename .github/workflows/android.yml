@@ -1,0 +1,81 @@
+# Builds the Android APK. The iOS build is made on the Mac.
+#
+# Started by hand:
+#   gh workflow run android.yml
+# The APK stays on the run as an artifact, named with the version from Cargo.toml:
+#   gh run download -n android-arm64
+# It is signed with the debug key in the ANDROID_DEBUG_KEYSTORE secret (see README.md).
+name: android
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  android:
+    name: android-arm64
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flint-mobile
+    steps:
+      # Cargo.toml takes flint-core and gpui-mobile from ../, so the three repos go side by side.
+      - uses: actions/checkout@v7
+        with:
+          path: flint-mobile
+
+      - uses: actions/checkout@v7
+        with:
+          repository: mousEHEHE/flint-core
+          path: flint-core
+
+      - uses: actions/checkout@v7
+        with:
+          repository: mousEHEHE/gpui-mobile
+          ref: flint
+          path: gpui-mobile
+
+      # With no arguments rustup installs the compiler and targets pinned in rust-toolchain.toml.
+      - name: Install Rust
+        run: rustup toolchain install --no-self-update
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: flint-mobile
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      # The runner has the Android SDK and NDK, and Java for Gradle.
+      - name: Build the Rust library
+        run: cargo ndk -t arm64-v8a -P 26 -o android/app/src/main/jniLibs build --lib --release --locked
+
+      # The same key on every run, so a new APK installs over the last one and keeps its data.
+      - name: Debug key
+        env:
+          DEBUG_KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE }}
+        run: |
+          [[ -n "$DEBUG_KEYSTORE" ]] || { echo "::error::The ANDROID_DEBUG_KEYSTORE secret is not set, see README.md"; exit 1; }
+          key_dir="${ANDROID_USER_HOME:-$HOME/.android}"
+          mkdir -p "$key_dir"
+          echo "$DEBUG_KEYSTORE" | base64 --decode > "$key_dir/debug.keystore"
+
+      - name: Build the APK
+        working-directory: flint-mobile/android
+        run: ./gradlew assembleDebug
+
+      - name: Package
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          cp android/app/build/outputs/apk/debug/app-debug.apk "Flint-$version-android-arm64.apk"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android-arm64
+          path: flint-mobile/Flint-*.apk
+          if-no-files-found: error

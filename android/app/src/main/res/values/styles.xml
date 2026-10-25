@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="FlintTheme" parent="@android:style/Theme.NoTitleBar">
+        <item name="android:windowBackground">@color/flint_background</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:hardwareAccelerated">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:statusBarColor">@color/flint_background</item>
+        <item name="android:navigationBarColor">@color/flint_background</item>
+        <item name="android:windowContentTransitions">false</item>
+    </style>
+
+    <!-- AndroidX splash: GpuiActivity holds it until the Rust side is up. -->
+    <style name="FlintSplashTheme" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/flint_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/FlintTheme</item>
+    </style>
+</resources>
