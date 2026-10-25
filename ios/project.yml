@@ -79,6 +79,9 @@ targets:
           "FLINT_STATIC_LIB[sdk=iphoneos*]": "$(PROJECT_DIR)/../target/aarch64-apple-ios/release/libflint_mobile.a"
           GCC_OPTIMIZATION_LEVEL: "s"
           DEBUG_INFORMATION_FORMAT: "dwarf-with-dsym"
+          # core-graphics wraps the private CGContextSetFontSmoothingStyle, which App Store
+          # Connect rejects. Nothing calls the wrapper, so stripping drops it.
+          DEAD_CODE_STRIPPING: YES
     preBuildScripts:
       - name: "Build the Rust library"
         basedOnDependencyAnalysis: false

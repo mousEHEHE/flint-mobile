@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- For `./build.sh ios-testflight`: sign for the App Store and upload to App Store Connect. -->
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store-connect</string>
+    <key>destination</key>
+    <string>upload</string>
+    <key>teamID</key>
+    <string>S7H6BD59M7</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <!-- Info.plist keeps build 1; Xcode raises it on upload past the last one in App Store Connect. -->
+    <key>manageAppVersionAndBuildNumber</key>
+    <true />
+</dict>
+</plist>

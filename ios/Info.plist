@@ -74,6 +74,10 @@
     <!-- Without it iOS blocks connections to servers on the local network. -->
     <key>NSLocalNetworkUsageDescription</key>
     <string>Flint connects to SSH servers on your local network.</string>
+    <!-- As answered in App Store Connect: standard encryption, not sold in France, so no
+         documents. Selling in France needs the French declaration and a new answer. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false />
     <key>CFBundleURLTypes</key>
     <array>
         <dict>

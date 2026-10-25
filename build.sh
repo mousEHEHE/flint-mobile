@@ -6,6 +6,7 @@
 #   ./build.sh ios-device            build, install and start on the connected iPhone
 #   ./build.sh ios-device --no-build start the last iPhone build again
 #   ./build.sh ios                   generate and open the Xcode project, to run and sign there
+#   ./build.sh ios-testflight        archive a release build and upload it to TestFlight
 #   ./build.sh android               build, install and start on the Android phone adb sees
 #   ./build.sh android --release     the same, with a release build of the Rust library
 #
@@ -204,6 +205,42 @@ ios_device() {
     fail "could not start Flint. Unlock the phone and run: ./build.sh ios-device --no-build"
 }
 
+# Signs with the Apple ID signed in to Xcode. Xcode picks the next free build number.
+ios_testflight() {
+    local build_dir="$root/ios/build"
+    local archive="$build_dir/Flint.xcarchive"
+
+    ios_targets
+    ios_project
+    step "Archiving a release build (log: ios/build/archive.log)"
+    echo "The release build of the Rust library takes several minutes."
+    mkdir -p "$build_dir"
+    rm -rf "$archive" "$build_dir/export"
+    local log="$build_dir/archive.log"
+    if ! xcodebuild archive \
+        -project "$root/ios/Flint.xcodeproj" \
+        -scheme Flint \
+        -configuration Release \
+        -destination "generic/platform=iOS" \
+        -archivePath "$archive" \
+        -allowProvisioningUpdates >"$log" 2>&1; then
+        grep -E "error(\[E[0-9]+\])?:|^error|ARCHIVE FAILED" "$log" | head -30 || true
+        fail "the archive failed, see $log"
+    fi
+
+    step "Uploading to App Store Connect (log: ios/build/upload.log)"
+    log="$build_dir/upload.log"
+    if ! xcodebuild -exportArchive \
+        -archivePath "$archive" \
+        -exportOptionsPlist "$root/ios/ExportOptions.plist" \
+        -exportPath "$build_dir/export" \
+        -allowProvisioningUpdates >"$log" 2>&1; then
+        grep -E "error:|EXPORT FAILED" "$log" | head -30 || true
+        fail "the upload failed, see $log"
+    fi
+    echo "Uploaded. The build shows in TestFlight once Apple has processed it."
+}
+
 ios_xcode() {
     ios_targets
     ios_project
@@ -240,6 +277,7 @@ case "${1:-}" in
     ios-sim) shift; ios_sim "$@" ;;
     ios-device) shift; ios_device "$@" ;;
     ios) ios_xcode ;;
+    ios-testflight) ios_testflight ;;
     android) shift; android "$@" ;;
-    *) sed -n '2,17p' "$0"; exit 1 ;;
+    *) sed -n '2,18p' "$0"; exit 1 ;;
 esac

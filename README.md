@@ -89,6 +89,18 @@ restarts). With a free Apple ID, also trust yourself on the phone after the
 first install (Settings > General > VPN & Device Management), and install
 again every 7 days, when the free profile ends.
 
+**TestFlight**, for internal testing:
+
+```sh
+./build.sh ios-testflight
+```
+
+It archives a release build, signs it for the App Store with the Apple ID
+signed in to Xcode, and uploads it. Xcode raises the build number past the
+last upload. The app is the Flint record in App Store Connect, the one of the
+desktop app (`com.mouse.flint`), with iOS added as a platform. A build shows
+in TestFlight once Apple has processed it, usually within half an hour.
+
 **Android** needs the Android SDK with the NDK (Android Studio installs both),
 `cargo install cargo-ndk`, and a phone with USB debugging on.
 
