@@ -4,8 +4,8 @@ use std::time::{Duration, Instant};
 use futures::future::{select, Either};
 use gpui::prelude::*;
 use gpui::{
-    div, px, AnyElement, AsyncApp, Context, Entity, EventEmitter, FontWeight, Hsla, SharedString,
-    Subscription, Task, WeakEntity, Window,
+    div, px, AnyElement, App, AsyncApp, Context, Entity, EventEmitter, FontWeight, Hsla,
+    SharedString, Subscription, Task, WeakEntity, Window,
 };
 use gpui_component::input::{Input, InputEvent, InputState};
 use gpui_component::{h_flex, v_flex};
@@ -600,17 +600,22 @@ impl SessionView {
             return;
         };
         if is_trusted {
-            self.remember_host_key(prompt.fingerprint.clone(), cx);
+            self.remember_host_key(&prompt.entry_id, prompt.fingerprint.clone(), cx);
         }
         let _ = prompt.reply.send(is_trusted);
         cx.notify();
     }
 
-    fn remember_host_key(&mut self, fingerprint: String, cx: &mut Context<Self>) {
+    /// `entry_id` is the hop that presented the key: on a jumped route often a bastion.
+    fn remember_host_key(&mut self, entry_id: &str, fingerprint: String, cx: &mut Context<Self>) {
         match &mut self.target {
+            // A quick connect has no jumps, so the key is the target's own.
             SessionTarget::Quick(target) => target.host_key = Some(fingerprint),
-            SessionTarget::Saved { id } => {
-                let id = *id;
+            SessionTarget::Saved { .. } => {
+                let Ok(id) = Uuid::parse_str(entry_id) else {
+                    tracing::warn!(entry_id, "host key from a hop that is not in the vault");
+                    return;
+                };
                 Store::global(cx).update(cx, |store, cx| {
                     if let Err(e) =
                         store.edit(cx, |vault| vault.set_entry_host_key(id, fingerprint))
@@ -1107,10 +1112,22 @@ impl SessionView {
             )
     }
 
+    /// The hop's vault label, since the key may come from a jump host and not the target.
+    fn hop_name(&self, entry_id: &str, cx: &App) -> SharedString {
+        let entry = Uuid::parse_str(entry_id)
+            .ok()
+            .and_then(|id| Store::global(cx).read(cx).vault()?.get_entry(id).ok());
+        match entry {
+            Some(entry) if !entry.label.is_empty() => entry.label.into(),
+            Some(entry) => entry.host.into(),
+            None => self.title.clone(),
+        }
+    }
+
     fn render_host_key_question(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         let prompt = self.host_key_question.as_ref()?;
         let is_changed = prompt.stored_fingerprint.is_some();
-        let host = &self.title;
+        let host = self.hop_name(&prompt.entry_id, cx);
         let (title, text) = if is_changed {
             (
                 "The server key has changed",
@@ -1557,9 +1574,12 @@ async fn drive_connection(
                 view.pending_auth_prompt = Some(prompt);
                 cx.notify();
             }),
-            SshConnectionEvent::HostKeyTrusted { fingerprint, .. } => {
-                this.update(cx, |view, cx| view.remember_host_key(fingerprint, cx))
-            }
+            SshConnectionEvent::HostKeyTrusted {
+                entry_id,
+                fingerprint,
+            } => this.update(cx, |view, cx| {
+                view.remember_host_key(&entry_id, fingerprint, cx)
+            }),
             SshConnectionEvent::Disconnected => this.update(cx, |view, cx| view.on_lost(cx)),
             SshConnectionEvent::ForwardChanged { .. } => Ok(()),
         };

@@ -78,7 +78,10 @@ fn save(list: &[RecentHost]) {
             if let Some(parent) = path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
-            std::fs::write(&path, json)
+            // Moved over the old file, so a kill mid-write cannot wipe the list.
+            let unfinished = path.with_extension("json.new");
+            std::fs::write(&unfinished, json)?;
+            std::fs::rename(&unfinished, &path)
         });
     if let Err(e) = result {
         tracing::warn!(?e, path = %path.display(), "could not save recent hosts");
