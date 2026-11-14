@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 and newer. The vault key must never leave the phone. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="device.key" />
+        <exclude domain="file" path="vault.bin" />
+        <exclude domain="file" path="vault.bin.tmp" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="device.key" />
+        <exclude domain="file" path="vault.bin" />
+        <exclude domain="file" path="vault.bin.tmp" />
+    </device-transfer>
+</data-extraction-rules>

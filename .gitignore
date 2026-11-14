@@ -8,4 +8,8 @@
 /android/app/build
 /android/build
 /android/local.properties
+# The release signing key; see the README.
+/android/keystore.properties
+*.jks
+*.keystore
 .DS_Store

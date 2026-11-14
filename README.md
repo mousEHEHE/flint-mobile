@@ -106,7 +106,22 @@ in TestFlight once Apple has processed it, usually within half an hour.
 
 ```sh
 ./build.sh android            # debug build
-./build.sh android --release  # fast Rust code, still a debug-signed APK
+./build.sh android --release  # signed, non-debuggable release APK
+```
+
+**Android release.** `--release` signs with your own key. Make it once and keep
+it safe: a phone takes updates only from the same key. Both files stay out of git.
+
+```sh
+cd android
+keytool -genkeypair -keystore flint-release.jks -alias flint \
+    -keyalg RSA -keysize 4096 -validity 10000
+cat > keystore.properties <<'END'
+storeFile=flint-release.jks
+storePassword=<the store password>
+keyAlias=flint
+keyPassword=<the key password>
+END
 ```
 
 Or without the Android SDK: GitHub builds the APK with

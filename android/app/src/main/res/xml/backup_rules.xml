@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older. The vault key must never leave the phone. -->
+<full-backup-content>
+    <exclude domain="file" path="device.key" />
+    <exclude domain="file" path="vault.bin" />
+    <exclude domain="file" path="vault.bin.tmp" />
+</full-backup-content>

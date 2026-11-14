@@ -1,7 +1,15 @@
 // build.sh builds the Rust library into src/main/jniLibs; Gradle only packages it.
 
+import java.util.Properties
+
 plugins {
     id("com.android.application")
+}
+
+// Release signing key, kept out of git; see "Android release" in the README.
+val keystoreFile = rootProject.file("keystore.properties")
+val keystore = Properties().apply {
+    if (keystoreFile.exists()) keystoreFile.inputStream().use { load(it) }
 }
 
 android {
@@ -23,8 +31,22 @@ android {
         manifestPlaceholders["nativeLibraryName"] = "flint_mobile"
     }
 
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystore.getProperty("storeFile"))
+                storePassword = keystore.getProperty("storePassword")
+                keyAlias = keystore.getProperty("keyAlias")
+                keyPassword = keystore.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // Not debuggable, so `adb run-as` cannot read the vault key.
+            isDebuggable = false
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -67,4 +89,15 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.media:media:1.7.1")
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    doFirst {
+        if (!keystoreFile.exists()) {
+            throw GradleException(
+                "android/keystore.properties is missing, so the release APK cannot be signed. " +
+                    "See \"Android release\" in the README."
+            )
+        }
+    }
 }

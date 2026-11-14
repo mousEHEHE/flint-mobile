@@ -8,7 +8,7 @@
 #   ./build.sh ios                   generate and open the Xcode project, to run and sign there
 #   ./build.sh ios-testflight        archive a release build and upload it to TestFlight
 #   ./build.sh android               build, install and start on the Android phone adb sees
-#   ./build.sh android --release     the same, with a release build of the Rust library
+#   ./build.sh android --release     the same, a signed release APK (needs android/keystore.properties)
 #
 # Needs:
 #   all       rustup (it installs the toolchain and targets)
@@ -250,11 +250,15 @@ ios_xcode() {
     open "$root/ios/Flint.xcodeproj"
 }
 
-# The APK is always the debug-signed one; --release only optimizes the Rust library.
+# --release builds a signed, non-debuggable APK; it needs android/keystore.properties.
 android() {
-    local profile_flag=""
+    local profile_flag="" variant="debug" task="assembleDebug"
     if [[ "${1:-}" == "--release" ]]; then
         profile_flag="--release"
+        variant="release"
+        task="assembleRelease"
+        [[ -f "$root/android/keystore.properties" ]] ||
+            fail "android/keystore.properties is missing, see \"Android release\" in the README"
     fi
     need cargo-ndk "Install it with: cargo install cargo-ndk"
     need adb "It comes with the Android SDK platform-tools."
@@ -264,8 +268,8 @@ android() {
         -o android/app/src/main/jniLibs build --lib $profile_flag)
 
     step "Building the APK"
-    (cd "$root/android" && ./gradlew --quiet assembleDebug)
-    local apk="$root/android/app/build/outputs/apk/debug/app-debug.apk"
+    (cd "$root/android" && ./gradlew --quiet "$task")
+    local apk="$root/android/app/build/outputs/apk/$variant/app-$variant.apk"
 
     step "Installing and starting"
     adb install -r "$apk"
