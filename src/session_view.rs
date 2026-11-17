@@ -274,6 +274,7 @@ impl SessionView {
                         username: target.username.clone(),
                         credential: AuthCredential::Password(target.password.clone()),
                         expected_host_key: target.host_key.clone(),
+                        forward_agent: false,
                     },
                     proxy: None,
                 });
@@ -318,7 +319,10 @@ impl SessionView {
         } else {
             entry.label.clone().into()
         };
-        route::route_for(vault, &entry, credential)
+        let mut route = route::route_for(vault, &entry, credential)?;
+        // A phone has no SSH agent to forward, whatever the computer set.
+        route.target.forward_agent = false;
+        Ok(route)
     }
 
     fn connect(&mut self, cx: &mut Context<Self>) {
