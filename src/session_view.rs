@@ -52,7 +52,9 @@ const AUTO_RECONNECT_WINDOW: Duration = Duration::from_secs(10);
 #[derive(Clone)]
 pub enum SessionTarget {
     /// Only the id: the route is rebuilt on every connect, so host edits apply.
-    Saved { id: Uuid },
+    Saved {
+        id: Uuid,
+    },
     Quick(ConnectTarget),
 }
 
@@ -322,6 +324,16 @@ impl SessionView {
         let mut route = route::route_for(vault, &entry, credential)?;
         // A phone has no SSH agent to forward, whatever the computer set.
         route.target.forward_agent = false;
+        if matches!(
+            route.proxy,
+            Some(flint_core::connection::ResolvedProxy::Command(_))
+        ) {
+            return Err(
+                "This host connects through a ProxyCommand, a program on your computer. \
+                 A phone cannot run it."
+                    .into(),
+            );
+        }
         Ok(route)
     }
 

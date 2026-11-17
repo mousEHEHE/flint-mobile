@@ -261,6 +261,7 @@ impl HostFormView {
                 proxy: ProxyChoice::Default,
                 jump_host: None,
                 forward_agent: false,
+                proxy_command: None,
                 forwards: Vec::new(),
                 startup_snippet: None,
                 snippets: Vec::new(),
