@@ -205,6 +205,7 @@ impl TerminalView {
             ShellEvent::Exited => cx.emit(TerminalEvent::Exited),
             ShellEvent::Disconnected => cx.emit(TerminalEvent::Disconnected),
             ShellEvent::Error(e) => tracing::warn!(%e, "terminal error"),
+            ShellEvent::Copy(text) => cx.write_to_clipboard(gpui::ClipboardItem::new_string(text)),
         }
     }
 
